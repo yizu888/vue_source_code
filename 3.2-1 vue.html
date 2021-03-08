@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root">
+        <p>{{name}}</p>
+        <p>{{message}}</p>
+    </div>
+
+
+    <script src="./js/vue.js"></script>
+    <script>
+
+        // JS 可以直接使用 id 来获取 DOM 元素
+        // console.log(root);
+
+        let app = new Vue({
+            el: '#root',
+            data: {
+                name: 'zs',
+                message: 'hello'
+            }
+        })
+
+        console.log(document.querySelector('#root').childNodes[1].nodeType);
+
+    </script>
+</body>
+</html>

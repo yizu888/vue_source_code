@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="root">
+        <p>{{name.firstName}}</p>
+        <p>{{name.lastName}}</p>
+        <p>{{gender}}</p>
+    </div>
+
+    <script>
+        let reg = /\{\{(.+?)\}\}/g;
+
+        function compiler(template, data) {
+
+            let childNodes = template.childNodes;
+
+            for(let i = 0; i < childNodes.length; i++) {
+
+                let type = childNodes[i].nodeType; // 1 元素 3 文本
+
+                // 文本节点，里面可能有插值
+                if(type == 3) {
+
+                    let txt = childNodes[i].nodeValue; // 该元素只有文本节点才有意义
+
+                    // 判断有没有双花括号
+                    txt = txt.replace(reg, (_, g) => { // replace 使用正则匹配一次，函数就会被调用一次
+                                                       // 函数的第0个参数表示匹配到的内容
+                                                       // 函数的第n个参数表示正则的第n组
+                        let key = g.trim();
+
+                        let getValueByPath_vue = createGetValueByPath(key);
+                        let value = getValueByPath_vue(data);
+
+                        // 将 {{ xxx }} 用 value 替换
+                        return value;
+
+                    });
+
+                    // 注意：现在 txt 和 DOM 元素是没有关系的，需重新赋值
+                    childNodes[i].nodeValue = txt;
+
+                }
+
+                // 元素节点，递归
+                if(type == 1) {
+
+                    compiler(childNodes[i], data);
+
+                }   
+
+            }
+
+        }
+
+        function mVue(option) {
+
+            // 内部变量用 _ 开头，只读量用 $ 开头
+            this._el = option.el;
+            this._data = option.data;
+
+            // 准备工作（准备模板）
+            this._tmpDOM = document.querySelector(this._el);
+            this._parentNode = this._tmpDOM.parentNode;
+
+            // 渲染工作
+            this.render();
+
+        }
+
+        mVue.prototype.render = function() {
+
+            this.compiler();
+
+        }
+
+        // 将模板与数据结合
+        mVue.prototype.compiler = function() {
+
+            let realDOM = this._tmpDOM.cloneNode(true);
+
+            compiler(realDOM, this._data);
+
+            this.update(realDOM);
+
+            console.log(realDOM);
+
+        }
+
+        // 将 DOM 元素放到页面中
+        mVue.prototype.update = function() {
+
+            this._parentNode.replaceChild(arguments[0], this._tmpDOM);
+
+        }   
+
+        let app = new mVue({
+            el: '#root',
+            data: {
+                gender: 'male',
+                name: {
+                    firstName: 'Frank',
+                    lastName: 'Gallagher'
+                }
+            }
+        })
+
+        window.mVue = app;
+
+        // p2 26:15
+
+        // 通过字符串路径访问对象属性
+        // 自己的写法
+        function getValueByPath_self(object, path) {
+            // debugger
+            let pathArray = path;
+            
+            let result = null;
+
+            // 递归
+            result = object[pathArray[0]];
+
+            pathArray.shift();
+
+            if(pathArray.length === 0) {
+
+                return result;
+
+            } else {
+
+                return getValueByPath(result, pathArray)
+
+            }
+
+
+        }
+
+        // 别人的写法
+        function getValueByPath_other(object, path) {
+
+            let pathArray = path.split('.');
+
+            let result = object;
+
+            let prop;
+
+            while(prop = pathArray.shift()) {
+
+                result = result[prop];
+
+            }
+
+            return result;
+
+        }
+
+        // Vue 中的写法：使用了函数高阶技巧--函数柯里化(Currying)
+        function createGetValueByPath(path) {
+
+            let pathArray = path.split('.');
+
+            return function getValueByPath(object) {
+
+                let result = object;
+
+                let prop;
+
+                while(prop = pathArray.shift()) {
+
+                    result = result[prop];
+
+                }
+
+                return result;
+
+            }
+
+        }
+
+        // p2 47:39 虚拟 DOM
+    </script>
+</body>
+</html>
